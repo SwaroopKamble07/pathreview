@@ -6,25 +6,21 @@
 
 **Issue title:** Faithfulness checker can never mark short claims as supported
 
-**Tier:** [ ] Tier 1  [ ] Tier 2  [ ] Tier 3
-<!-- TODO: check the issue on GitHub for its tier-N label and mark the correct box -->
+**Tier:** [x] Tier 1  [ ] Tier 2  [ ] Tier 3
 
 **Problem summary:**
-The RAG evaluation pipeline includes a `FaithfulnessChecker` that scores whether generated
-feedback is actually backed up by the retrieved context, rather than hallucinated. It does
-this by splitting feedback into individual claims (sentences) and checking, for each claim,
-whether it shares at least two meaningful (non-stopword) words with the context text. Short
-claims like "Knows Python" only contain one or two meaningful words in total, so they can
-never reach the required overlap of two shared words with the context — even when the claim
-is fully and correctly supported. As a result, feedback made up of short, accurate claims gets
-scored as 0.0 faithfulness, a false negative that misrepresents genuinely faithful feedback as
-hallucinated. A correct fix would scale the required overlap to the claim's own length instead
-of using a fixed threshold of 2, in `rag/evaluator/faithfulness_checker.py`.
+This bug is in `rag/evaluator/faithfulness_checker.py`, in the part of the RAG pipeline that
+checks whether the AI's generated feedback is actually true based on the context it was given
+(instead of just making stuff up). It works by breaking the feedback into separate claims (one
+per sentence) and checking each one against the context for at least 2 shared meaningful words.
+The problem is that short claims, like "Knows Python", only have 1-2 meaningful words in them to
+begin with, so they can never hit that "2 shared words" requirement, even when they're
+completely correct. So right now, any feedback made up of short, true claims gets scored as
+0.0, which makes it look totally unsupported when it's actually fine. A fix would need to make
+that "2 words" requirement scale down for shorter claims instead of always requiring 2.
 
 **Branch name:** fix/152-faithfulness-short-claims
 
-**Setup confirmation:** [ ] App runs locally at localhost:5173
-<!-- TODO: check this box once you've confirmed `make run` works and the frontend loads -->
+**Setup confirmation:** [x] App runs locally at localhost:5173
 
-**Cohort ledger:** [ ] Issue added to cohort ledger
-<!-- TODO: add this issue to the cohort ledger yourself, then check this box -->
+**Cohort ledger:** [x] Issue added to cohort ledger
