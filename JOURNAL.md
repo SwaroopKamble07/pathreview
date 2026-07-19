@@ -19,6 +19,15 @@ completely correct. So right now, any feedback made up of short, true claims get
 0.0, which makes it look totally unsupported when it's actually fine. A fix would need to make
 that "2 words" requirement scale down for shorter claims instead of always requiring 2.
 
+**Selection notes:** I went with this one because it's Tier 1, and since this is my first time
+really digging into a codebase this size, I wanted something scoped to a single function in a
+single file rather than something that touches multiple parts of the system. The bug is also
+easy to reproduce and verify — there are already 3 failing tests for it — so I can check my fix
+actually works without having to write a testing setup from scratch. I also picked this one on
+purpose because it's in the RAG/AI evaluation part of the codebase, which is the area I have the
+least experience with, so I wanted to use this issue to get more comfortable with that side of
+the project.
+
 **Branch name:** fix/152-faithfulness-short-claims
 
 **Setup confirmation:** [x] App runs locally at localhost:5173
