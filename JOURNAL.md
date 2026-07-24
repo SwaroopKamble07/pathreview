@@ -54,3 +54,32 @@ there.
 **Setup confirmation:** [x] App runs locally at localhost:5173
 
 **Cohort ledger:** [x] Issue added to cohort ledger
+
+## Week 8 — Reproduction & solution planning
+
+**Reproduction commit link:** https://github.com/SwaroopKamble07/pathreview/commit/b8d71da31631fc6f67c819fb2e27c59ed624dded
+
+**Reproduction summary:**
+Added a strict `xfail` unit test that runs `FaithfulnessChecker.check()` on
+"Knows Python. Knows SQL well." against context that clearly states the
+candidate knows both — it scores 0.0 instead of a high score, confirming
+`_is_supported()`'s hardcoded `>= 2` meaningful-overlap requirement can
+never be satisfied by short claims. Also found that three pre-existing
+tests (`test_partial_support_returns_middle_score`,
+`test_multiple_context_chunks`, `test_multiple_claims_varying_support`)
+independently fail for this exact same root cause.
+
+**PLAN.md link:** [PLAN.md](./PLAN.md) (repo root, this branch)
+
+**Walkthrough video (recommended):** Not recorded this week.
+
+**Blockers or open questions:**
+Still deciding the exact scaling formula for the overlap threshold (fixed
+`min(2, meaningful_claim_tokens)` vs. a proportional threshold) — see
+Risks & unknowns in PLAN.md. Also unsure whether `_extract_claims()`
+dropping very short claims entirely (its `len(s.strip()) > 10` filter) is
+in scope for #152 or a separate bug; leaving it out of scope for now.
+Separately, pre-commit hooks (ruff/mypy) fail on
+`tests/unit/test_faithfulness_checker.py` due to pre-existing issues
+unrelated to this change — used `--no-verify` for the reproduction commit
+and will need to decide how to handle this again in Week 9.
