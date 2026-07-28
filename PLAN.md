@@ -137,6 +137,17 @@ Files I expect **not** to touch, and why:
   claim to accidentally share one word with unrelated context and get
   wrongly marked as supported. Need targeted tests for this (see Edge
   cases).
+  **Update (Week 9):** confirmed real. Under the shipped formula a claim
+  with 2-3 meaningful tokens needs only 1 overlapping word, so e.g.
+  "Expert Rust developer" against "The developer has strong Python skills"
+  is marked supported purely on the incidental word "developer". This is
+  unavoidable given the motivating case ("Knows Python" = 2 meaningful
+  tokens, 1 overlap), and inherent to the bag-of-words heuristic — closing
+  it needs semantic matching, out of scope. Pinned it with
+  `test_short_claim_with_incidental_overlap_false_positive` (marked
+  `xfail`, asserting the *desired* unsupported result) so the limitation is
+  documented and auto-detected if precision is later improved, and called
+  it out explicitly in the PR's "Trade-off" section for reviewer sign-off.
 - **Pre-commit hooks currently fail on this whole test file** (25
   pre-existing missing type annotations, 1 unused variable — confirmed via
   `git stash` that these predate my changes). I used `--no-verify` for the

@@ -275,6 +275,34 @@ class TestFaithfulnessChecker:
 
         assert supported is False
 
+    @pytest.mark.xfail(
+        strict=False,
+        reason="Known, accepted precision trade-off of the #152 fix: to let a "
+        "true 2-meaningful-token claim ('Knows Python') pass on its single "
+        "overlapping word, 2-3 meaningful-token claims now require only 1 "
+        "overlap. A mostly-wrong claim that shares one incidental filler word "
+        "(e.g. 'developer') with unrelated context is therefore marked "
+        "supported. This is inherent to the bag-of-words overlap heuristic "
+        "and cannot be fixed without semantic matching; documented here so "
+        "the regression is visible and auto-detected if precision improves.",
+    )
+    def test_short_claim_with_incidental_overlap_false_positive(self, checker):
+        """Characterize the false-positive introduced by loosening the threshold.
+
+        "Expert Rust developer" is *about Rust*, and the context is about
+        Python — only the generic word "developer" overlaps. Ideally this
+        should be unsupported (asserted below), but under the scaled
+        threshold a 3-meaningful-token claim needs only 1 overlap, so it is
+        currently marked supported. See the xfail reason for why this is an
+        accepted limitation rather than a bug to fix in this PR.
+        """
+        claim = "Expert Rust developer"
+        context = "The developer has strong Python skills"
+
+        supported = checker._is_supported(claim, context)
+
+        assert supported is False
+
     def test_none_context_chunk_text(self, checker):
         """Test handling of None in context chunk text."""
         feedback = "Has Python skills"
