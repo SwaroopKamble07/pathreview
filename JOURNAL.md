@@ -123,7 +123,7 @@ None.
 
 ### Check-in 2 (end of week)
 
-**PR link:** _(added once opened — see below)_
+**PR link:** https://github.com/ascherj/pathreview/pull/380
 
 **Branch:** `fix/152-faithfulness-short-claims`
 
@@ -152,4 +152,4 @@ _(both with pre-existing, documented exceptions unrelated to this change —
 see PR description for the full list; my change introduces no new
 failures in either.)_
 
-**Draft PR feedback received from:** none yet
+**Draft PR feedback received from:** none (instructor confirmed no peer feedback was required for this issue)
