@@ -175,21 +175,31 @@ class TestFaithfulnessChecker:
         assert score1 > score2
 
     def test_multiple_claims_varying_support(self, checker):
-        """Test scoring with multiple claims, both genuinely supported.
+        """Test scoring with multiple claims of varying support.
 
-        "Knows Rust." is exactly 10 characters, so it's silently dropped by
-        `_extract_claims()`'s separate `len(s.strip()) > 10` filter (a known,
-        out-of-scope issue for #152 — see PLAN.md Risks & unknowns). Only
-        "Python expert" and "Skilled with Docker" are actually scored, and
-        context supports both, so the score is 1.0, not a mixed value.
+        All three claims are long enough to clear `_extract_claims()`'s
+        `len(s.strip()) > 10` filter, so this test exercises the "varying
+        support" scenario directly and does not depend on that filter's
+        behavior: two claims (Python, Docker) overlap the context and one
+        (Rust) does not, so the score is a genuine 2/3, not a boundary
+        artifact. (An earlier version used shorter phrases where one claim
+        was silently dropped by the length filter — a separate bug noted in
+        PLAN.md — which made the expected score coupled to that unrelated
+        filter; this fixture avoids that coupling.)
         """
-        feedback = "Python expert. Knows Rust. Skilled with Docker."
-        context_chunks = [{"text": "Python and Docker expertise shown in projects."}]
+        feedback = (
+            "Strong Python expertise. Experienced Rust developer. "
+            "Docker containerization skills."
+        )
+        context_chunks = [
+            {"text": "Python and Docker expertise demonstrated in backend projects."}
+        ]
 
         score = checker.check(feedback, context_chunks)
 
         assert isinstance(score, float)
-        assert score == 1.0
+        # Two of three claims supported.
+        assert score == pytest.approx(2 / 3)
 
     def test_very_long_feedback(self, checker):
         """Test handling of very long feedback text."""
