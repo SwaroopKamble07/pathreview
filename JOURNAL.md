@@ -153,3 +153,197 @@ see PR description for the full list; my change introduces no new
 failures in either.)_
 
 **Draft PR feedback received from:** none (instructor confirmed no peer feedback was required for this issue)
+
+## Week 10 — Iteration & reflection
+
+### Reviewer feedback
+
+**Feedback received:** [ ] Yes  [x] No — still awaiting review
+
+**Summary of feedback:**
+No reviewer or maintainer feedback came in. PR #380 has been open and
+marked ready for review since 2026-07-31 with 0 comments and 0 reviews as
+of 2026-08-06. My instructor confirmed that peer review was not required
+for this issue, and reviewer feedback is not a feature of the Summer 2026
+cohort, so this is expected rather than a stalled PR.
+
+The one piece of substantive feedback I did receive was from grading on
+the Week 9 submission, and I acted on it rather than letting it sit — see
+below.
+
+**How you responded:**
+No reviewer comments to respond to. I did act on the Week 9 grading
+feedback, which flagged that `test_multiple_claims_varying_support`
+asserted a score of `1.0` that was only correct *because of a separate
+bug*: "Knows Rust." is exactly 10 characters, so `_extract_claims()`'s
+`len(s.strip()) > 10` filter silently dropped it, leaving 2 claims that
+both happened to be supported. If anyone later fixed that filter, my test
+would have broken confusingly, and the failure would have pointed at the
+wrong code.
+
+I took the more resilient of the two options the feedback suggested:
+rather than just adding a comment flagging the coupling, I rewrote the
+fixture so all three claims clear the length filter
+("Strong Python expertise. Experienced Rust developer. Docker
+containerization skills."), with two supported and one not. The test now
+asserts a genuine 2/3 and exercises "varying support" directly, so it no
+longer depends on the extraction bug's behavior at all. Committed as
+`a2b1dc5` and pushed to the branch and PR, with the PLAN.md note updated
+to match.
+
+---
+
+### Reflection
+
+**What was harder than you expected?**
+
+Discovering that my own plan was wrong. PLAN.md confidently proposed
+`required = min(2, len(meaningful_claim_tokens))` on the premise that
+"Knows Python" has one meaningful token. It has two — `knows` isn't in
+the stop-word list — so `min(2, 2)` still demanded 2 overlapping words
+and the reproduction test kept failing after I'd "implemented the fix."
+The plan was internally coherent and completely wrong at its root, and I
+only found out by running it. I had to pivot mid-implementation to a
+proportional threshold, `min(2, max(1, n // 2))`, and verify it by hand
+against every case in the test file before trusting it.
+
+The second surprise was that "do the tests pass?" wasn't a yes-or-no
+question. The repo had 53 failing unit tests before I touched anything.
+That meant I couldn't just run `make test-unit` and read the result — I
+had to `git stash` my work, capture a clean baseline (53 failed / 375
+passed / 1 xfailed), restore, and re-run to prove my change moved the
+number the right way (50 failed / 382 passed) without breaking anything
+else. Proving a *negative* — "I didn't make it worse" — took noticeably
+more work than writing the fix itself, which was about twelve lines.
+
+Third: the three pre-existing tests I'd identified in Week 8 as failing
+"for the same root cause" actually failed for three different reasons,
+and I only learned that by digging into each one individually.
+
+**What did you learn about working in a large codebase?**
+
+That existing tests encode assumptions, and the assumptions can be wrong.
+`test_multiple_context_chunks` is named as though three context chunks
+produce three claims — but the feedback string is a single sentence, so
+it yields exactly one claim scored against all three chunks concatenated.
+The test name, the inline comment, and the fixture disagreed with each
+other, and had for a long time. In my own projects I'd assume a failing
+test means my code is broken; here I had to treat the test as a claim to
+be verified, not a ground truth.
+
+I also learned that bugs sit next to other bugs, and that scoping is a
+real skill. I found two adjacent problems — `_extract_claims()`'s
+`> 10` character filter dropping short claims, and a `TypeError` when a
+context chunk's text is `None` — and deliberately left both out of scope,
+documenting why in PLAN.md and the PR rather than quietly expanding the
+change. That turned out to be right, but the grading feedback showed I
+hadn't followed it all the way through: it isn't enough to scope a bug
+out of your *fix*, you also have to keep it out of your *tests'
+assumptions*, or you've coupled yourself to it anyway.
+
+The thing I didn't anticipate at all was diff hygiene. I ran `black` on
+the file I was editing, which is what the project's own pre-commit config
+does — and it reformatted the entire file, turning a 12-line logic change
+into a 40-line diff full of unrelated quote-style and line-wrapping
+churn. I reverted it and reapplied only the logic change by hand, keeping
+the rest of the file byte-identical. On a solo project running the
+formatter is unambiguously correct. On someone else's PR, a reviewer has
+to read every line you touched, so making them read 28 lines of
+reformatting to find 12 lines of logic is a real cost. Same for the
+pre-commit hooks: they failed on ~29 pre-existing missing type
+annotations that had nothing to do with me, so I used `--no-verify` and
+documented exactly why in the commit message instead of either
+"fixing" unrelated files or silently skipping.
+
+**How did AI tools help — and where did they fall short?**
+
+Most useful for orientation and for mechanical verification. I was
+working in the RAG evaluation code, the part of the codebase I knew
+least, and AI let me find and understand `_is_supported()` and its
+callers far faster than reading around would have. The highest-value use
+was generating a throwaway script that printed the meaningful-token set
+and overlap count for every claim/context pair in the test file. That
+turned "I think this formula works" into a table I could actually check
+before writing any code, and it's what let me catch the plan's flawed
+premise and confirm the replacement formula wouldn't flip any
+currently-passing test. It was also genuinely good at the writing-heavy
+parts — the PR description, the per-test docstrings explaining *why* an
+assertion changed.
+
+Where it fell short is more interesting, and it's a pattern rather than
+three separate incidents. AI was consistently confident and consistently
+plausible, including when it was wrong, and the failures all took the
+same shape: reasoning that's locally valid but built on an unverified
+factual premise.
+
+- The Week 8 plan asserted "Knows Python" has one meaningful token. Every
+  conclusion that followed was correct *given* that, and the whole chain
+  was wrong because of it. Nothing in the plan's tone signalled that the
+  premise was the weak link.
+- When a test assertion had to change, the first version simply asserted
+  the value the code actually produced (`1.0`) and wrote a docstring
+  explaining it. That's a true statement about the code and still the
+  wrong test — it locked in a number that was only right because of an
+  unrelated bug. That's precisely what cost me points in Week 9 grading.
+- Running `black` on the whole file was "correct" by the project's config
+  and wrong for the change I was making.
+
+The through-line: AI is strong at generating options and explaining
+mechanics, and weak at judging which of several true things actually
+matters here. Deciding that a passing test can still be a bad test, that
+a formatter that improves the file can still hurt the PR, that a
+plausible plan needs its premise checked before it's followed — that
+judgment had to be mine, and the times I outsourced it are exactly the
+times it went wrong. Verification is not a step AI can do on its own
+behalf, because a confident wrong answer looks identical to a confident
+right one.
+
+**What would you do differently if you started over?**
+
+Three concrete things.
+
+First, I'd verify the plan's central factual claim before writing the
+plan around it. One command — tokenizing "Knows Python" and printing the
+set — would have caught the miscount in Week 8 instead of Week 9 and
+saved the entire mid-implementation pivot. Cheapest possible check,
+skipped because the reasoning felt solid.
+
+Second, I'd establish the failing-test baseline on day one, before
+touching any code, rather than discovering mid-implementation that 53
+tests already fail and having to reconstruct the baseline with `git
+stash`. It's the first thing I'd do in an unfamiliar repo now.
+
+Third, whenever a test's expected value has to change, I'd ask "is this
+value right, and is it right for the *right reason*?" — not just "does
+this match what the code does?" I got the first question right and never
+asked the second, which is the whole substance of the feedback I
+received. A test that passes for an accidental reason is worse than one
+that fails, because it will break later and point at the wrong culprit.
+
+I wouldn't change the issue selection. Deliberately picking a Tier 1 bug
+in the area I understood least was the right call — the fix was small
+enough that all the difficulty landed in process and judgment rather than
+in the algorithm, which is where I actually needed the practice.
+
+**What are you most proud of?**
+
+Documenting the weaknesses in my own fix instead of hiding them. Two
+moments specifically. When I found the plan's formula didn't work, I
+recorded the pivot *in place* in PLAN.md — leaving the original proposal
+visible with an update explaining why it was wrong — instead of quietly
+rewriting history to look like I'd planned the right thing all along.
+And when I realized the fix necessarily admits new false positives
+(a 2–3 token claim now needs only 1 overlapping word, so "Expert Rust
+developer" matches Python-only context on the incidental word
+"developer"), I added an `xfail` test that asserts the *desired*
+behavior and wrote a "Trade-off" section in the PR description with a
+table showing exactly what got looser, and invited the reviewer to push
+back.
+
+Volunteering the strongest argument against my own PR felt
+counterproductive while writing it. But that trade-off is real, a
+reviewer would eventually have found it, and a fix whose limitations are
+documented is worth more to a maintainer than one that hides them — the
+`xfail` test even means the limitation gets flagged automatically if
+someone later improves precision. That's the habit from this module I'd
+most want to keep.
